@@ -191,6 +191,13 @@ form label{align-content:start}
 .row{align-items:start}
 form input:not([type=checkbox]),form select{height:54px}
 form select{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding-right:2.6rem;cursor:pointer;background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 16px center/14px}
+.consent{position:fixed;left:16px;bottom:16px;z-index:60;max-width:380px;background:#fff;color:#000;border-radius:18px;padding:1.1rem 1.2rem;box-shadow:0 20px 50px rgba(0,0,0,.28);font-size:.9rem;display:grid;gap:.8rem}
+.consent[hidden]{display:none}.consent p{max-width:none}.consent a{color:var(--blue);font-weight:700;text-decoration:underline}
+.consent .row2{display:flex;gap:.6rem}.consent button{flex:1;border:0;border-radius:99px;padding:.65rem 1rem;font:inherit;font-weight:700;cursor:pointer}
+#cn-yes{background:var(--blue);color:#fff}#cn-no{background:var(--paper);color:#000}
+.pv{border:0;padding:0 0 1.5rem;font-size:.9rem}.pv summary{font-size:.95rem;justify-content:flex-start;gap:.6rem}.pv summary::after{color:#fff}
+.pv .pvt{max-width:78ch;margin-top:.6rem;opacity:.92;display:grid;gap:.6rem}.pv .pvt p{max-width:none}
+@media(max-width:860px){.consent{left:10px;right:10px;bottom:64px;max-width:none}}
 </style>
 </head>
 <body>
@@ -282,10 +289,12 @@ form select{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding
 <ul><li><a href="#about">About</a></li><li><a href="#services">Services</a></li><li><a href="#portfolio">Portfolio</a></li><li><a href="#faq">FAQ</a></li></ul>
 <ul><li><a href="#contact">Get a free quote</a></li><li>Johannesburg, South Africa</li><li>Serving businesses across South Africa</li></ul>
 </div></div>
+<div class="wrap"><details class="pv" id="privacy"><summary>Privacy notice</summary><div class="pvt"><p>When you send a quote request, we collect your name, business name, phone number, email address, the services you are interested in, your budget range, your goal and any message you write. We use this to contact you and prepare your quote. Your request is delivered to our email through a third-party form service, and we may continue the conversation on WhatsApp.</p><p>If you accept cookies, we use Google Analytics to count visits and to see which sections and buttons are used. It does not receive your name, email address or phone number.</p><p>We keep enquiry details only as long as we need them for your quote and our records, and we do not sell your information. To see, correct or delete your information, email contact@molubidigital.co.za. Molubi Digital is responsible for the information collected through this site.</p></div></details></div>
 <div class="sweep"></div>
 <div class="giant" id="gi" aria-hidden="true"></div>
 <div class="wrap fbar"><span>&copy; <span id="yr"></span> Molubi Digital. All rights reserved.</span><span>Built in South Africa.</span></div>
 </footer>
+<div class="consent" id="cn" hidden role="region" aria-label="Cookie notice"><p>We use cookies to see how visitors use this site, so we can improve it. Your name, email and phone number are never sent to analytics. <a href="#privacy" id="cn-more">Read more</a></p><div class="row2"><button id="cn-no" type="button">Decline</button><button id="cn-yes" type="button">Accept</button></div></div>
 <div class="viewer" id="vw" hidden role="dialog" aria-modal="true" aria-label="Website preview"><div class="vbar"><div class="dots"><i></i><i></i><i></i></div><div class="url" id="vu"></div><div class="vt"><button data-m="d" class="on">Desktop</button><button data-m="p">Phone</button></div><button class="vnew" id="vn">Open in new tab</button><button class="vx" id="vx" aria-label="Close preview">&times;</button></div><div class="vstage" id="vs"><iframe id="vf" sandbox="allow-same-origin allow-scripts" title="Website preview"></iframe></div><div class="vcta"><span>Want a website like this for your business?</span><a href="#contact" id="vc" class="btn">Get a free quote</a></div></div>
 <a href="#contact" class="sticky">Get a free quote</a>
 <button class="top" id="tp" aria-label="Back to top">&uarr;</button>
@@ -294,6 +303,7 @@ form select{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding
 // ===== CONFIG: edit these three lines =====
 const WHATSAPP='27686995210';            // +27 68 699 5210 (country code, no + or spaces)
 const EMAIL='contact@molubidigital.co.za';
+const GA_ID='G-4HDKPKBSDY';                  // Google Analytics 4 Measurement ID
 const FORM_ENDPOINT='https://formsubmit.co/ajax/contact@molubidigital.co.za'; // form enquiries are emailed to this address
 // ==========================================
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -338,6 +348,7 @@ f.addEventListener('submit',async e=>{
  const t=`Hi Molubi Digital, I'm ${d.name} from ${d.business}. I'd like a quote for: ${d.services}. Budget: ${d.budget}. Main goal: ${d.goal}. ${d.msg||''} Phone: ${d.phone}`;
  $('#wa2').href=`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(t)}`;
  f.classList.add('sent');
+ if(sent)track('generate_lead',{services:String(d.services).slice(0,100),budget:d.budget,goal:d.goal});
 });
 
 // ===== Portfolio demo websites =====
@@ -486,13 +497,42 @@ new IntersectionObserver((e,o)=>{if(e.some(x=>x.isIntersecting)){cards.forEach((
 const fit=()=>cards.forEach(c=>{const sh=c.querySelector('.shot');c.querySelector('iframe').style.transform=`scale(${sh.clientWidth/1200})`});
 fit();addEventListener('resize',fit);addEventListener('load',fit);
 const setMode=m=>{vs.classList.toggle('phone',m==='p');$$('.vt button').forEach(b=>b.classList.toggle('on',b.dataset.m===m))};
-const openV=(i,el)=>{cur=i;opener=el;vf.srcdoc=DEMOS[i].html;$('#vu').textContent=DEMOS[i].url+'  (concept)';setMode('d');vw.hidden=false;document.body.style.overflow='hidden';$('#vx').focus()};
+const openV=(i,el)=>{cur=i;track('portfolio_open',{project:DEMOS[i].url});opener=el;vf.srcdoc=DEMOS[i].html;$('#vu').textContent=DEMOS[i].url+'  (concept)';setMode('d');vw.hidden=false;document.body.style.overflow='hidden';$('#vx').focus()};
 const closeV=()=>{vw.hidden=true;vf.srcdoc='';document.body.style.overflow='';if(opener)opener.focus()};
 cards.forEach((c,i)=>{c.onclick=()=>openV(i,c);c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openV(i,c)}}});
 $('#vx').onclick=closeV;$('#vc').onclick=closeV;
 $$('.vt button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 $('#vn').onclick=()=>window.open(URL.createObjectURL(new Blob([DEMOS[cur].html],{type:'text/html'})),'_blank');
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!vw.hidden)closeV()});
+
+// ===== Analytics (Google Analytics 4, only after the visitor accepts) =====
+let gaOn=false;
+const isDev=['','localhost','127.0.0.1'].includes(location.hostname);
+function track(name,params){if(gaOn&&window.gtag)window.gtag('event',name,params||{})}
+function loadGA(){
+ if(gaOn||isDev||GA_ID==='G-XXXXXXXXXX'||!/^G-[A-Z0-9]+$/.test(GA_ID))return;
+ const g=document.createElement('script');g.async=true;g.src='https://www.googletagmanager.com/gtag/js?id='+GA_ID;document.head.appendChild(g);
+ window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments)};
+ window.gtag('js',new Date());window.gtag('config',GA_ID);gaOn=true;
+}
+const store={get(){try{return localStorage.getItem('md_consent')}catch(_){return null}},set(v){try{localStorage.setItem('md_consent',v)}catch(_){}}};
+const cn=$('#cn');
+if(store.get()==='yes')loadGA();
+else if(store.get()!=='no')setTimeout(()=>{cn.hidden=false},1800);
+$('#cn-yes').onclick=()=>{store.set('yes');cn.hidden=true;loadGA()};
+$('#cn-no').onclick=()=>{store.set('no');cn.hidden=true};
+$('#cn-more').onclick=()=>{$('#privacy').open=true};
+document.addEventListener('click',e=>{
+ const a=e.target.closest('a');if(!a)return;const h=a.getAttribute('href')||'';
+ const where=(a.closest('[id]')||{}).id||'page';
+ if(h.includes('wa.me'))track('click_whatsapp',{link_location:where,service:a.dataset.wa||''});
+ else if(h.startsWith('mailto:'))track('click_email',{link_location:where});
+ else if(a.dataset.svc)track('quote_cta_click',{service:a.dataset.svc});
+ else if(a.matches('.links .btn,.sticky,.cta-row .btn'))track('quote_cta_click',{service:'general'});
+});
+const seenSec=new Set();
+const secObs=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting&&!seenSec.has(x.target.id)){seenSec.add(x.target.id);track('section_view',{section:x.target.id})}}),{threshold:.4});
+['about','services','portfolio','faq','contact'].forEach(id=>{const el=document.getElementById(id);if(el)secObs.observe(el)});
 </script>
 </body>
 </html>
